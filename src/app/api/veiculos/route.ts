@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
-import type { VeiculoListParams, VeiculoResponse, CreateVeiculoRequest } from '@/types/api';
+import { validateVehicle, sanitizeVehicleData } from '@/lib/validation';
+import type { VeiculoListParams, VeiculoResponse, CreateVeiculoRequest, ApiSuccess, ApiError } from '@/types/api';
 
 export async function GET(request: NextRequest) {
   try {
@@ -155,59 +156,100 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse<ApiSuccess | ApiError>> {
   try {
-    const body: CreateVeiculoRequest = await request.json();
+    const rawBody = await request.json();
 
-    // Validações básicas
-    if (!body.marca || !body.modelo || !body.ano || !body.valor || !body.categoria_id) {
-      return NextResponse.json(
-        { error: 'Campos obrigatórios: marca, modelo, ano, valor, categoria_id' },
-        { status: 400 }
-      );
+    // Sanitizar dados de entrada
+    const sanitizedData = sanitizeVehicleData(rawBody);
+
+    // Validação robusta
+    const validation = await validateVehicle(sanitizedData, false);
+
+    if (!validation.valid) {
+      return NextResponse.json({
+        error: 'Dados inválidos',
+        message: 'Os dados fornecidos contêm erros de validação',
+        validation_errors: validation.errors
+      }, { status: 400 });
     }
 
-    // Calcular classe social
-    const classeConfig = await supabase
+    // Buscar configuração de classes para calcular classe social automaticamente
+    const { data: classeConfig } = await supabase
       .from('classes_config')
       .select('*')
       .single();
 
     let classeSocial = 'D';
-    if (classeConfig.data) {
-      const { classe_a_min, classe_b_min, classe_c_min } = classeConfig.data;
-      if (body.valor >= classe_a_min) classeSocial = 'A';
-      else if (body.valor >= classe_b_min) classeSocial = 'B';
-      else if (body.valor >= classe_c_min) classeSocial = 'C';
+    if (classeConfig) {
+      const { classe_a_min, classe_b_min, classe_c_min } = classeConfig;
+      if (sanitizedData.valor >= classe_a_min) classeSocial = 'A';
+      else if (sanitizedData.valor >= classe_b_min) classeSocial = 'B';
+      else if (sanitizedData.valor >= classe_c_min) classeSocial = 'C';
     }
+
+    // Preparar dados para inserção
+    const vehicleData = {
+      ...sanitizedData,
+      classe_social: classeSocial,
+      dias_estoque: 0,
+      data_entrada: new Date().toISOString().split('T')[0], // Data atual
+      status: sanitizedData.status || 'disponivel'
+    };
 
     // Inserir veículo
     const { data: veiculo, error } = await supabase
       .from('veiculos')
-      .insert({
-        ...body,
-        classe_social: classeSocial,
-        dias_estoque: 0
-      })
-      .select()
+      .insert(vehicleData)
+      .select(`
+        *,
+        categorias!inner(id, nome, slug, icone)
+      `)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Tratar erros específicos do PostgreSQL
+      if (error.code === '23505') { // Unique violation
+        const field = error.details?.includes('placa') ? 'placa' : 
+                     error.details?.includes('codigo_interno') ? 'codigo_interno' : 'unknown';
+        
+        return NextResponse.json({
+          error: 'Dados duplicados',
+          message: `Já existe um veículo com este ${field === 'placa' ? 'placa' : 'código interno'}`,
+          code: 'DUPLICATE_ENTRY',
+          validation_errors: [{
+            field,
+            message: `${field === 'placa' ? 'Placa' : 'Código interno'} já está em uso`,
+            code: 'DUPLICATE'
+          }]
+        }, { status: 409 });
+      }
+      
+      throw error;
+    }
 
-    return NextResponse.json({ 
-      success: true, 
+    // Resposta de sucesso com warnings se houver
+    const response: ApiSuccess = {
+      success: true,
       data: veiculo,
       message: 'Veículo criado com sucesso'
-    }, { status: 201 });
+    };
+
+    if (validation.warnings.length > 0) {
+      response.warnings = validation.warnings;
+    }
+
+    return NextResponse.json(response, { status: 201 });
 
   } catch (error) {
     console.error('Criar veículo error:', error);
-    return NextResponse.json(
-      { 
-        error: 'Erro ao criar veículo',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
-      },
-      { status: 500 }
-    );
+    
+    const errorResponse: ApiError = {
+      error: 'Erro interno do servidor',
+      message: 'Erro ao criar veículo',
+      details: { message: error instanceof Error ? error.message : 'Erro desconhecido' }
+    };
+
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }

@@ -8,12 +8,15 @@ import {
   Search,
   BarChart3,
   Settings,
-  Filter,
   Download,
-  X
+  Upload,
+  Car,
+  X,
+  Plus
 } from 'lucide-react';
 import { NewEditorialList } from './NewEditorialList';
 import { useGestures } from '../../hooks/useGestures';
+import { AdminDashboard } from '../admin/AdminDashboard';
 
 // Enhanced touch feedback hook for mobile interactions
 function useTouchFeedback() {
@@ -91,9 +94,10 @@ interface DashboardData {
 }
 
 interface EditorialDashboardProps {
-  dashboard: DashboardData | undefined;
-  isLoading: boolean;
-  onRefresh: () => void;
+  dashboard?: DashboardData | undefined;
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  onMenuAction?: (action: string) => void;
 }
 
 // Status Indicator Component
@@ -406,7 +410,7 @@ function EditorialSection({
 // }
 
 // Floating Modular Menu Component (Refined AssistiveTouch style)
-function FloatingModularMenu({ 
+export function FloatingModularMenu({ 
   onAction, 
   onRefresh,
   setShowMobileSearch 
@@ -417,9 +421,10 @@ function FloatingModularMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState({ 
-    x: typeof window !== 'undefined' ? window.innerWidth - 80 : 20, 
-    y: typeof window !== 'undefined' ? window.innerHeight - 130 : 20 
+    x: 20, 
+    y: 20 
   });
+  const [isClient, setIsClient] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   // const [dragStartTime, setDragStartTime] = useState(0); // unused
@@ -427,12 +432,23 @@ function FloatingModularMenu({
   const [hasDragged, setHasDragged] = useState(false);
   const { handleTouchFeedback } = useTouchFeedback();
 
+  // Save position to localStorage
+  const savePositionToStorage = (newPosition: { x: number; y: number }) => {
+    try {
+      localStorage.setItem('floatingMenuPosition', JSON.stringify(newPosition));
+    } catch (error) {
+      console.warn('Failed to save menu position to localStorage:', error);
+    }
+  };
+
   const menuActions = [
-    { id: 'home', icon: Home, label: 'Início', shortcut: 'H', color: 'text-slate-300' },
-    { id: 'search', icon: Search, label: 'Buscar', shortcut: 'S', color: 'text-cyan-400' },
-    { id: 'filter', icon: Filter, label: 'Filtros', shortcut: 'F', color: 'text-emerald-400' },
-    { id: 'stats', icon: BarChart3, label: 'Estatísticas', shortcut: 'E', color: 'text-amber-400' },
-    { id: 'download', icon: Download, label: 'Exportar', shortcut: 'X', color: 'text-purple-400' },
+    { id: 'home', icon: Home, label: 'Dashboard', shortcut: 'H', color: 'text-slate-300' },
+    { id: 'vehicles', icon: Car, label: 'Veículos', shortcut: 'V', color: 'text-violet-400' },
+    { id: 'add-vehicle', icon: Plus, label: 'Novo Veículo', shortcut: 'N', color: 'text-emerald-400' },
+    { id: 'import', icon: Upload, label: 'Importar', shortcut: 'I', color: 'text-cyan-400' },
+    { id: 'search', icon: Search, label: 'Buscar', shortcut: 'S', color: 'text-amber-400' },
+    { id: 'stats', icon: BarChart3, label: 'Estatísticas', shortcut: 'E', color: 'text-purple-400' },
+    { id: 'download', icon: Download, label: 'Exportar', shortcut: 'X', color: 'text-pink-400' },
     { id: 'settings', icon: Settings, label: 'Configurações', shortcut: 'C', color: 'text-gray-400' }
   ];
 
@@ -582,6 +598,11 @@ function FloatingModularMenu({
     
     setIsPressed(false);
     
+    // Save position if user dragged
+    if (hasDragged) {
+      savePositionToStorage(position);
+    }
+    
     // Restore body scroll
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
@@ -631,6 +652,11 @@ function FloatingModularMenu({
     if (!isPressed) return;
     
     setIsPressed(false);
+    
+    // Save position if user dragged
+    if (hasDragged) {
+      savePositionToStorage(position);
+    }
     
     // Restore body scroll (same as mobile cleanup)
     document.body.style.overflow = '';
@@ -697,13 +723,38 @@ function FloatingModularMenu({
     }, 150); // Small delay for better UX
   };
 
-  // Initialize position in bottom right corner
+  // Initialize position from localStorage or default to bottom right corner
   useEffect(() => {
+    setIsClient(true);
     const updatePosition = () => {
-      setPosition({
-        x: window.innerWidth - 80,
-        y: window.innerHeight - 130
-      });
+      // Try to load saved position from localStorage
+      const savedPosition = localStorage.getItem('floatingMenuPosition');
+      
+      if (savedPosition) {
+        try {
+          const parsed = JSON.parse(savedPosition);
+          // Validate position is within screen bounds
+          const maxX = window.innerWidth - 80;
+          const maxY = window.innerHeight - 130;
+          
+          setPosition({
+            x: Math.min(Math.max(20, parsed.x), maxX),
+            y: Math.min(Math.max(20, parsed.y), maxY)
+          });
+        } catch (error) {
+          // If parsing fails, use default position
+          setPosition({
+            x: window.innerWidth - 80,
+            y: window.innerHeight - 130
+          });
+        }
+      } else {
+        // Default position if no saved position
+        setPosition({
+          x: window.innerWidth - 80,
+          y: window.innerHeight - 130
+        });
+      }
     };
 
     // Set initial position
@@ -761,6 +812,11 @@ function FloatingModularMenu({
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [isOpen]);
+
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -1150,18 +1206,19 @@ function MobileSearchOverlay({
   );
 }
 
-export function EditorialDashboard({ dashboard, isLoading, onRefresh }: EditorialDashboardProps) {
+export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, onMenuAction }: EditorialDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   // const [activeSection, setActiveSection] = useState('home'); // unused
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [adminAction, setAdminAction] = useState<string | null>(null);
 
   // Mobile gesture handling
   const gestureHandlers = useGestures({
     onSwipe: (gesture) => {
       // Swipe down to refresh (mobile pattern)
       if (gesture.direction === 'down' && gesture.distance > 100) {
-        onRefresh();
+        onRefresh?.();
       }
     },
     onLongPress: () => {
@@ -1181,8 +1238,31 @@ export function EditorialDashboard({ dashboard, isLoading, onRefresh }: Editoria
       style: 'currency',
       currency: 'BRL',
       notation: 'compact',
+      maximumFractionDigits: 1 // Permitir 1 casa decimal para melhor precisão
+    }).format(value);
+  };
+
+  const formatCurrencyFull = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
       maximumFractionDigits: 0
     }).format(value);
+  };
+
+  // Handler para ações do menu
+  const handleMenuAction = (action: string) => {
+    // Ações administrativas
+    if (['vehicles', 'add-vehicle', 'import', 'stats'].includes(action)) {
+      setAdminAction(action);
+    } else if (action === 'home') {
+      setAdminAction(null);
+    }
+    
+    // Chamar callback externo se fornecido
+    if (onMenuAction) {
+      onMenuAction(action);
+    }
   };
 
   // Filtrar hierarquia baseado na busca
@@ -1214,6 +1294,16 @@ export function EditorialDashboard({ dashboard, isLoading, onRefresh }: Editoria
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Se estiver em modo admin, renderizar AdminDashboard
+  if (adminAction) {
+    return (
+      <AdminDashboard 
+        initialAction={adminAction} 
+        onBackToHome={() => setAdminAction(null)}
+      />
     );
   }
 
@@ -1694,8 +1784,8 @@ export function EditorialDashboard({ dashboard, isLoading, onRefresh }: Editoria
 
       {/* Floating Modular Menu */}
       <FloatingModularMenu
-        onAction={() => {}} // setActiveSection
-        onRefresh={onRefresh}
+        onAction={handleMenuAction}
+        onRefresh={onRefresh || (() => {})}
         setShowMobileSearch={setShowMobileSearch}
       />
 

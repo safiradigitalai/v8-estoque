@@ -141,12 +141,143 @@ export interface FiltersResponse {
   };
 }
 
+// Import System Types
+export interface FileUpload {
+  id: number;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  file_size: number;
+  file_path: string;
+  status: 'uploaded' | 'processing' | 'completed' | 'failed' | 'cancelled';
+  import_type: 'csv' | 'excel' | 'json' | 'api';
+  source_type: string;
+  total_rows: number;
+  valid_rows: number;
+  error_rows: number;
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+  processed_at?: string;
+}
+
+export interface ImportLog {
+  id: number;
+  file_upload_id: number;
+  row_number: number;
+  source_data: Record<string, any>;
+  processed_data?: Record<string, any>;
+  status: 'pending' | 'processed' | 'error' | 'skipped' | 'duplicate';
+  veiculo_id?: number;
+  validation_errors: Array<{
+    field: string;
+    message: string;
+    value?: any;
+  }>;
+  error_message?: string;
+  created_at: string;
+  processed_at?: string;
+}
+
+export interface FieldMapping {
+  id: number;
+  name: string;
+  description?: string;
+  source_type: string;
+  field_map: Record<string, string>;
+  data_transformations: Record<string, any>;
+  validation_rules: Record<string, any>;
+  active: boolean;
+  default_mapping: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ImportUploadRequest {
+  file: File;
+  import_type: 'csv' | 'excel';
+  source_type: string;
+}
+
+export interface ImportProcessRequest {
+  preview_only?: boolean;
+  mapping_id?: number;
+}
+
+export interface ImportPreviewResponse {
+  success: boolean;
+  data: {
+    headers: string[];
+    preview: Array<{
+      row_number: number;
+      original_data: Record<string, any>;
+      transformed_data: Record<string, any>;
+      validation_errors: Array<{
+        field: string;
+        message: string;
+        value?: any;
+      }>;
+      status: 'valid' | 'error';
+    }>;
+    mapping: FieldMapping;
+  };
+}
+
+export interface ImportProcessResponse {
+  success: boolean;
+  data: {
+    processed: number;
+    errors: number;
+    duplicates: number;
+    skipped: number;
+  };
+}
+
+// Enhanced Vehicle Validation
+export interface VehicleValidationError {
+  field: string;
+  message: string;
+  value?: any;
+  code?: string;
+}
+
+export interface VehicleValidationResult {
+  valid: boolean;
+  errors: VehicleValidationError[];
+  warnings: VehicleValidationError[];
+}
+
+// Batch Operations
+export interface BatchOperation {
+  action: 'create' | 'update' | 'delete';
+  data: any;
+  id?: number;
+}
+
+export interface BatchOperationResult {
+  success: boolean;
+  operation: BatchOperation;
+  result?: any;
+  error?: string;
+}
+
+export interface BatchResponse {
+  success: boolean;
+  results: BatchOperationResult[];
+  summary: {
+    total: number;
+    successful: number;
+    failed: number;
+  };
+}
+
 // Error Types
 export interface ApiError {
   error: string;
   message?: string;
   code?: string;
   details?: Record<string, unknown>;
+  validation_errors?: VehicleValidationError[];
 }
 
 // Success Response
@@ -154,4 +285,5 @@ export interface ApiSuccess<T = unknown> {
   success: true;
   data?: T;
   message?: string;
+  warnings?: VehicleValidationError[];
 }

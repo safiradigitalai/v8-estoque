@@ -98,7 +98,7 @@ function VehicleCard({ vehicle, index }: { vehicle: VehicleData; index: number }
               {vehicle.valor ? new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL',
-                maximumFractionDigits: 0
+                maximumFractionDigits: 1
               }).format(vehicle.valor) : 'Preço sob consulta'}
             </span>
             
@@ -146,7 +146,7 @@ export function NewEditorialList({
       style: 'currency',
       currency: 'BRL',
       notation: 'compact',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 1 // Permitir 1 casa decimal para melhor precisão
     }).format(value);
   };
 
