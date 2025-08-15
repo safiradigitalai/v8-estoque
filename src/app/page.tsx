@@ -1,10 +1,33 @@
 'use client';
 
 import { EditorialDashboard } from '@/components/editorial/EditorialDashboard';
+import { LoginScreen } from '@/components/auth/LoginScreen';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardPage() {
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { dashboard, isLoading, isError, refresh } = useDashboard();
+
+  // Mostrar loading se ainda está verificando autenticação
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-8">
+          <div className="text-4xl font-extralight text-gray-400 tracking-[0.2em] animate-pulse">
+            V<span className="text-3xl">8</span>
+          </div>
+          <div className="w-16 h-px bg-gray-300 animate-pulse"></div>
+          <p className="text-xs font-light text-gray-400 tracking-[0.2em] uppercase">Carregando</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar tela de login se não autenticado
+  if (!isAuthenticated) {
+    return <LoginScreen onLoginSuccess={() => window.location.reload()} />;
+  }
 
   if (isError) {
     return (
@@ -33,6 +56,7 @@ export default function DashboardPage() {
       dashboard={dashboard}
       isLoading={isLoading}
       onRefresh={refresh}
+      onLogout={logout}
     />
   );
 }

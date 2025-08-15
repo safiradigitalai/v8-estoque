@@ -12,7 +12,8 @@ import {
   Upload,
   Car,
   X,
-  Plus
+  Plus,
+  LogOut
 } from 'lucide-react';
 import { NewEditorialList } from './NewEditorialList';
 import { useGestures } from '../../hooks/useGestures';
@@ -98,6 +99,7 @@ interface EditorialDashboardProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   onMenuAction?: (action: string) => void;
+  onLogout?: () => void;
 }
 
 // Status Indicator Component
@@ -449,7 +451,8 @@ export function FloatingModularMenu({
     { id: 'search', icon: Search, label: 'Buscar', shortcut: 'S', color: 'text-amber-400' },
     { id: 'stats', icon: BarChart3, label: 'Estatísticas', shortcut: 'E', color: 'text-purple-400' },
     { id: 'download', icon: Download, label: 'Exportar', shortcut: 'X', color: 'text-pink-400' },
-    { id: 'settings', icon: Settings, label: 'Configurações', shortcut: 'C', color: 'text-gray-400' }
+    { id: 'settings', icon: Settings, label: 'Configurações', shortcut: 'C', color: 'text-gray-400' },
+    { id: 'logout', icon: LogOut, label: 'Sair', shortcut: 'Q', color: 'text-red-400' }
   ];
 
   // Calculate intelligent menu positioning and button offset
@@ -1206,7 +1209,7 @@ function MobileSearchOverlay({
   );
 }
 
-export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, onMenuAction }: EditorialDashboardProps) {
+export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, onMenuAction, onLogout }: EditorialDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   // const [activeSection, setActiveSection] = useState('home'); // unused
@@ -1257,6 +1260,12 @@ export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, on
       setAdminAction(action);
     } else if (action === 'home') {
       setAdminAction(null);
+    } else if (action === 'logout') {
+      // Confirmar logout
+      if (window.confirm('Tem certeza que deseja sair do sistema?')) {
+        onLogout?.();
+      }
+      return; // Não prosseguir com outras ações
     }
     
     // Chamar callback externo se fornecido
