@@ -1,13 +1,24 @@
 'use client';
 
-import { EditorialDashboard } from '@/components/editorial/EditorialDashboard';
+import { useState } from 'react';
+import { OverviewModule } from '@/components/overview/OverviewModule';
+import { EstoqueModule } from '@/components/estoque/EstoqueModule';
+import { WhatsLeadsModule } from '@/components/whatsleads/WhatsLeadsModule';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/hooks/useAuth';
 
+// Type para os módulos disponíveis
+type ModuleId = 'overview' | 'estoque' | 'whatsleads' | 'vendedores';
+
 export default function DashboardPage() {
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { dashboard, isLoading, isError, refresh } = useDashboard();
+  const [currentModule, setCurrentModule] = useState<ModuleId>('overview');
+  const [estoqueNavigation, setEstoqueNavigation] = useState<{
+    view?: 'dashboard' | 'listagem' | 'adicionar' | 'editar' | 'importar';
+    origin?: 'overview' | 'dashboard' | 'listagem';
+  }>({});
 
   // Mostrar loading se ainda está verificando autenticação
   if (authLoading) {
@@ -51,12 +62,76 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <EditorialDashboard 
-      dashboard={dashboard}
-      isLoading={isLoading}
-      onRefresh={refresh}
-      onLogout={logout}
-    />
-  );
+  // Handler para mudança de módulo
+  const handleModuleChange = (module: ModuleId, options?: {
+    estoqueView?: 'dashboard' | 'listagem' | 'adicionar' | 'editar' | 'importar';
+    estoqueOrigin?: 'overview' | 'dashboard' | 'listagem';
+  }) => {
+    setCurrentModule(module);
+    
+    // Se está indo para estoque, configurar navegação
+    if (module === 'estoque' && options) {
+      setEstoqueNavigation({
+        view: options.estoqueView,
+        origin: options.estoqueOrigin
+      });
+    } else {
+      // Limpar navegação do estoque quando sair
+      setEstoqueNavigation({});
+    }
+  };
+
+  // Renderizar módulo atual
+  const renderCurrentModule = () => {
+    switch (currentModule) {
+      case 'overview':
+        return (
+          <OverviewModule
+            dashboard={dashboard}
+            isLoading={isLoading}
+            onRefresh={refresh}
+            onModuleChange={handleModuleChange}
+            onLogout={logout}
+          />
+        );
+      case 'estoque':
+        return (
+          <EstoqueModule
+            onModuleChange={handleModuleChange}
+            onLogout={logout}
+            initialView={estoqueNavigation.view}
+            initialOrigin={estoqueNavigation.origin}
+          />
+        );
+      case 'whatsleads':
+        return (
+          <WhatsLeadsModule
+            onNavigateToConversas={() => console.log('Navegar para conversas')}
+            onNavigateToLeads={() => console.log('Navegar para leads')}
+            onNavigateToMetrics={() => console.log('Navegar para métricas')}
+            onNavigateToConfig={() => console.log('Navegar para configurações')}
+            onModuleChange={setCurrentModule}
+            onRefresh={refresh}
+            onLogout={logout}
+          />
+        );
+      case 'vendedores':
+        // TODO: Implementar VendedoresModule na próxima etapa
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-white to-violet-50/20 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-purple-600 rounded-3xl flex items-center justify-center mx-auto">
+                <span className="text-white font-bold text-xl">👥</span>
+              </div>
+              <h2 className="text-2xl font-light text-gray-900">Módulo Vendedores</h2>
+              <p className="text-gray-600">Em desenvolvimento - ETAPA 3</p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return renderCurrentModule();
 }

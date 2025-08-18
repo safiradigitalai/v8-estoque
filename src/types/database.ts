@@ -230,3 +230,71 @@ export type DashboardItem = Database['public']['Views']['dashboard_estoque']['Ro
 export type CreateVeiculo = Database['public']['Tables']['veiculos']['Insert'];
 export type UpdateVeiculo = Database['public']['Tables']['veiculos']['Update'];
 export type CreateVeiculoFoto = Database['public']['Tables']['veiculo_fotos']['Insert'];
+
+// Tipos para o módulo de vendedores
+export interface Vendedor {
+  id: number;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  foto_url: string | null;
+  pontuacao: number;
+  nivel: 'iniciante' | 'intermediario' | 'avancado' | 'expert';
+  meta_mensal: number;
+  comissao_percentual: number;
+  status: 'ativo' | 'inativo' | 'suspenso' | 'ferias';
+  data_contratacao: string;
+  especialidades: string[] | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export interface VendedorMetricas {
+  id: number;
+  vendedor_id: number;
+  periodo: string;
+  leads_recebidos: number;
+  leads_convertidos: number;
+  veiculos_vendidos: number;
+  valor_vendas: number;
+  comissao_ganha: number;
+  pontos_ganhos: number;
+  bonus_atingido: boolean;
+  meta_atingida: boolean;
+  taxa_conversao: number;
+  ticket_medio: number;
+  criado_em: string;
+}
+
+export interface DashboardVendedor {
+  id: number;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  foto_url: string | null;
+  pontuacao: number;
+  nivel: 'iniciante' | 'intermediario' | 'avancado' | 'expert';
+  meta_mensal: number;
+  comissao_percentual: number;
+  status: 'ativo' | 'inativo' | 'suspenso' | 'ferias';
+  data_contratacao: string;
+  especialidades: string[] | null;
+  
+  // Métricas do mês atual
+  leads_mes_atual: number;
+  conversoes_mes_atual: number;
+  vendas_mes_atual: number;
+  faturamento_mes_atual: number;
+  taxa_conversao_atual: number;
+  ticket_medio_atual: number;
+  meta_atingida_atual: boolean;
+  
+  // Totais acumulados (últimos 6 meses)
+  total_vendas_semestre: number;
+  total_faturamento_semestre: number;
+  media_conversao_semestre: number;
+  
+  // Rankings
+  ranking_geral: number;
+  ranking_mes: number;
+}

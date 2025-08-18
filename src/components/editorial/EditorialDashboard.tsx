@@ -1793,6 +1793,7 @@ export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, on
 
       {/* Floating Modular Menu */}
       <FloatingModularMenu
+        currentModule="estoque"
         onAction={handleMenuAction}
         onRefresh={onRefresh || (() => {})}
         setShowMobileSearch={setShowMobileSearch}

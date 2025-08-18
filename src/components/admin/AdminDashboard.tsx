@@ -318,6 +318,7 @@ export function AdminDashboard({ initialAction, onBackToHome }: AdminDashboardPr
       
       {/* Menu flutuante sempre presente */}
       <FloatingModularMenu
+        currentModule="vendedores"
         onAction={handleMenuAction}
         onRefresh={() => window.location.reload()}
         setShowMobileSearch={() => {}}
