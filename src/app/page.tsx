@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { OverviewModule } from '@/components/overview/OverviewModule';
 import { EstoqueModule } from '@/components/estoque/EstoqueModule';
 import { WhatsLeadsModule } from '@/components/whatsleads/WhatsLeadsModule';
+import { VendedoresModule } from '@/components/vendedores/VendedoresModule';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/hooks/useAuth';
@@ -116,17 +117,12 @@ export default function DashboardPage() {
           />
         );
       case 'vendedores':
-        // TODO: Implementar VendedoresModule na próxima etapa
         return (
-          <div className="min-h-screen bg-gradient-to-br from-purple-50/30 via-white to-violet-50/20 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-purple-600 rounded-3xl flex items-center justify-center mx-auto">
-                <span className="text-white font-bold text-xl">👥</span>
-              </div>
-              <h2 className="text-2xl font-light text-gray-900">Módulo Vendedores</h2>
-              <p className="text-gray-600">Em desenvolvimento - ETAPA 3</p>
-            </div>
-          </div>
+          <VendedoresModule
+            onModuleChange={handleModuleChange}
+            onLogout={logout}
+            onRefresh={refresh}
+          />
         );
       default:
         return null;

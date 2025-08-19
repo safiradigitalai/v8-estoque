@@ -21,9 +21,11 @@ const fetcher = async (url: string): Promise<VendedoresResponse> => {
   return res.json();
 };
 
-export function useVendedores() {
+export function useVendedores(periodo?: string) {
+  const endpoint = periodo ? `/api/vendedores?periodo=${periodo}` : '/api/vendedores';
+  
   const { data, error, mutate, isLoading } = useSWR<VendedoresResponse>(
-    '/api/vendedores',
+    endpoint,
     fetcher,
     {
       refreshInterval: 60000, // Refresh a cada 60s

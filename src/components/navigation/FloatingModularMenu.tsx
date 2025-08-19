@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X,
   BarChart3,
   Package,
   MessageCircle,
   Users,
-  RotateCcw,
-  LogOut,
-  Search
+  LogOut
 } from 'lucide-react';
 
 // Hook para feedback tátil reutilizado
@@ -87,8 +86,6 @@ const menuItems: ModularMenuItem[] = [
   { id: 'vendedores', icon: Users, label: 'Vendedores', shortcut: 'V', color: 'text-purple-400', type: 'module' },
   
   // Ações globais
-  { id: 'search', icon: Search, label: 'Buscar', shortcut: 'S', color: 'text-amber-400', type: 'action' },
-  { id: 'refresh', icon: RotateCcw, label: 'Atualizar', shortcut: 'R', color: 'text-cyan-400', type: 'action' },
   { id: 'logout', icon: LogOut, label: 'Sair', shortcut: 'Q', color: 'text-red-400', type: 'action' }
 ];
 
@@ -138,26 +135,34 @@ export function FloatingModularMenu({
     }
   };
 
-  // Calculate intelligent menu positioning
+  // Calculate intelligent menu positioning relative to viewport
   const getMenuPosition = () => {
-    const menuHeight = 380; // Maior para acomodar mais itens
+    const menuHeight = 280; // Compacto sem subtítulos
     const menuWidth = 200;
     const buttonSize = 56;
     const margin = 20;
     
+    // Get viewport dimensions (visible area)
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate button's position relative to viewport (not affected by scroll)
     let menuX = position.x;
     let menuY = position.y - menuHeight - 10;
     
+    // Adjust if menu would be above viewport
     if (menuY < margin) {
       menuY = position.y + buttonSize + 10;
     }
     
-    if (menuX + menuWidth > window.innerWidth - margin) {
+    // Adjust if menu would be outside right edge
+    if (menuX + menuWidth > viewportWidth - margin) {
       menuX = position.x - menuWidth + buttonSize;
     }
     
-    menuX = Math.max(margin, Math.min(menuX, window.innerWidth - menuWidth - margin));
-    menuY = Math.max(margin, Math.min(menuY, window.innerHeight - menuHeight - margin));
+    // Ensure menu stays within viewport bounds
+    menuX = Math.max(margin, Math.min(menuX, viewportWidth - menuWidth - margin));
+    menuY = Math.max(margin, Math.min(menuY, viewportHeight - menuHeight - margin));
     
     return { x: menuX, y: menuY };
   };
@@ -252,12 +257,6 @@ export function FloatingModularMenu({
         onModuleChange(item.id as ModuleId);
       } else {
         switch (item.id) {
-          case 'search':
-            setShowMobileSearch?.(true);
-            break;
-          case 'refresh':
-            onRefresh?.();
-            break;
           case 'logout':
             if (window.confirm('Tem certeza que deseja sair do sistema?')) {
               onLogout?.();
@@ -273,7 +272,8 @@ export function FloatingModularMenu({
   // Initialize position
   useEffect(() => {
     setIsClient(true);
-    const updatePosition = () => {
+    
+    const initializePosition = () => {
       const savedPosition = localStorage.getItem('floatingMenuPosition');
       
       if (savedPosition) {
@@ -300,9 +300,20 @@ export function FloatingModularMenu({
       }
     };
 
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    return () => window.removeEventListener('resize', updatePosition);
+    // Só reposicionar no resize, não continuamente
+    const handleResize = () => {
+      const maxX = window.innerWidth - 80;
+      const maxY = window.innerHeight - 130;
+      
+      setPosition(prev => ({
+        x: Math.min(Math.max(20, prev.x), maxX),
+        y: Math.min(Math.max(20, prev.y), maxY)
+      }));
+    };
+
+    initializePosition();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Close menu when clicking outside
@@ -316,7 +327,7 @@ export function FloatingModularMenu({
 
   if (!isClient) return null;
 
-  return (
+  const menuContent = (
     <>
       {/* Backdrop */}
       {isOpen && (
@@ -330,11 +341,13 @@ export function FloatingModularMenu({
       <div
         className="fixed z-50 select-none"
         style={{
+          position: 'fixed',
           left: `${position.x}px`,
           top: `${position.y}px`,
           transform: `scale(${isPressed ? 0.95 : 1}) ${isDragging ? 'rotate(2deg)' : 'rotate(0deg)'}`,
           transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-          cursor: isDragging ? 'grabbing' : 'pointer'
+          cursor: isDragging ? 'grabbing' : 'pointer',
+          willChange: 'transform'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -344,7 +357,7 @@ export function FloatingModularMenu({
           
           return (
             <div 
-              className="absolute bg-black/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden"
+              className="absolute bg-black/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden z-50"
               style={{
                 left: `${menuPos.x - position.x}px`,
                 top: `${menuPos.y - position.y}px`,
@@ -366,7 +379,7 @@ export function FloatingModularMenu({
                       handleTouchFeedback(e.currentTarget as HTMLElement, 'light');
                       setIsOpen(false);
                     }}
-                    className="w-6 h-6 rounded-full bg-white/10 hover:bg-red-500/20 border border-white/20 hover:border-red-400/40 flex items-center justify-center transition-all duration-200 group active:scale-95"
+                    className="w-6 h-6 rounded-full bg-white/10 hover:bg-red-500/20 border border-white/20 hover:border-red-400/40 flex items-center justify-center transition-all duration-200 group active:scale-95 cursor-pointer"
                   >
                     <X className="w-3 h-3 text-gray-300 group-hover:text-red-400 transition-colors duration-200" />
                   </button>
@@ -375,10 +388,6 @@ export function FloatingModularMenu({
               
               {/* Módulos */}
               <div className="py-2">
-                <div className="px-3 py-2">
-                  <span className="text-xs font-mono text-gray-500 uppercase tracking-wider">Módulos</span>
-                </div>
-                
                 {menuItems.filter(item => item.type === 'module').map((item, index) => {
                   const isCurrentModule = currentModule === item.id;
                   const Icon = item.icon;
@@ -388,7 +397,7 @@ export function FloatingModularMenu({
                       key={item.id}
                       onClick={(e) => handleItemClick(item, e)}
                       className={`
-                        w-full px-4 py-3 flex items-center space-x-3 transition-all duration-200 group relative overflow-hidden
+                        w-full px-4 py-3 flex items-center space-x-3 transition-all duration-200 group relative overflow-hidden cursor-pointer
                         ${isCurrentModule 
                           ? `bg-white/10 border-l-2 border-${currentAccentColor}` 
                           : 'hover:bg-white/5 active:bg-white/10'
@@ -428,11 +437,6 @@ export function FloatingModularMenu({
                 {/* Separador */}
                 <div className="mx-4 my-2 h-px bg-white/10" />
                 
-                {/* Ações */}
-                <div className="px-3 py-2">
-                  <span className="text-xs font-mono text-gray-500 uppercase tracking-wider">Ações</span>
-                </div>
-                
                 {menuItems.filter(item => item.type === 'action').map((item, index) => {
                   const Icon = item.icon;
                   
@@ -440,7 +444,7 @@ export function FloatingModularMenu({
                     <button
                       key={item.id}
                       onClick={(e) => handleItemClick(item, e)}
-                      className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-white/5 transition-all duration-200 group relative overflow-hidden active:bg-white/10"
+                      className="w-full px-4 py-3 flex items-center space-x-3 hover:bg-white/5 transition-all duration-200 group relative overflow-hidden active:bg-white/10 cursor-pointer"
                       style={{
                         animation: `modularItemEntry 0.3s ease-out ${(index + 4) * 0.05}s both`,
                         minHeight: '48px'
@@ -559,4 +563,7 @@ export function FloatingModularMenu({
       `}</style>
     </>
   );
+
+  // Temporariamente sem portal para teste
+  return menuContent;
 }
