@@ -280,9 +280,7 @@ export function OverviewModule({
           activeTheme === 'leads' ? 'whatsleads' : 'overview'
         }
         onModuleChange={onModuleChange}
-        onRefresh={onRefresh}
         onLogout={onLogout}
-        setShowMobileSearch={setShowMobileSearch}
       />
     </OverviewLayout>
   );

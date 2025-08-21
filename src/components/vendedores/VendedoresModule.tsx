@@ -220,14 +220,11 @@ export function VendedoresModule({
         {renderActiveView()}
       </main>
 
-      {/* Floating Menu Modular - TESTE */}
+      {/* Floating Menu Modular */}
       <FloatingModularMenu
         currentModule="vendedores"
-        onAction={handleMenuAction}
         onModuleChange={onModuleChange}
-        onRefresh={onRefresh}
         onLogout={onLogout}
-        setShowMobileSearch={() => {}}
       />
     </VendedoresLayout>
   );

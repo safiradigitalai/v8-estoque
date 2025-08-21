@@ -162,9 +162,7 @@ export function WhatsLeadsModule({
       <FloatingModularMenu
         currentModule="whatsleads"
         onModuleChange={onModuleChange}
-        onRefresh={onRefresh}
         onLogout={onLogout}
-        setShowMobileSearch={() => {}}
       />
     </div>
   );

@@ -165,9 +165,8 @@ export function EstoqueModule({
       {/* Floating Menu */}
       <FloatingModularMenu
         currentModule="estoque"
-        onAction={handleMenuAction}
-        onRefresh={() => window.location.reload()}
-        setShowMobileSearch={setShowMobileSearch}
+        onModuleChange={onModuleChange}
+        onLogout={onLogout}
       />
     </EstoqueLayout>
   );

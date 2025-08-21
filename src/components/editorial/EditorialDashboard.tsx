@@ -18,6 +18,7 @@ import {
 import { NewEditorialList } from './NewEditorialList';
 import { useGestures } from '../../hooks/useGestures';
 import { AdminDashboard } from '../admin/AdminDashboard';
+import { LogoutModal } from '@/components/ui/LogoutModal';
 
 // Enhanced touch feedback hook for mobile interactions
 function useTouchFeedback() {
@@ -1211,6 +1212,7 @@ function MobileSearchOverlay({
 
 export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, onMenuAction, onLogout }: EditorialDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   // const [activeSection, setActiveSection] = useState('home'); // unused
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -1261,10 +1263,8 @@ export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, on
     } else if (action === 'home') {
       setAdminAction(null);
     } else if (action === 'logout') {
-      // Confirmar logout
-      if (window.confirm('Tem certeza que deseja sair do sistema?')) {
-        onLogout?.();
-      }
+      // Mostrar modal elegante de logout
+      setShowLogoutModal(true);
       return; // Não prosseguir com outras ações
     }
     
@@ -1810,6 +1810,17 @@ export function EditorialDashboard({ dashboard, isLoading = false, onRefresh, on
           setSearchTerm(marca);
           // setActiveSection('search'); // unused
         }}
+      />
+
+      {/* Modal de Logout Elegante */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          setShowLogoutModal(false);
+          onLogout?.();
+        }}
+        userName="Administrador"
       />
     </div>
   );
